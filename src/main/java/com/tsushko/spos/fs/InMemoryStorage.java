@@ -6,21 +6,62 @@ import org.apache.logging.log4j.Logger;
 import java.io.*;
 
 /**
- * Created by artem on 12.05.15.
+ * Emulates HDD as a sequence of blocks represented by array of bytes.
+ * <p>
+ * Implements <code>readBlock</code> and <code>writeBlock</code> methods of
+ * <code>Storage</code> interface, as well as some additional methods
+ * for saving it's state to file, such as {@link #saveToFile(File)} and
+ * {@link #getStorageFromFile(File)}.
+ *
+ * @author Artem Tsushko
+ * @version 1.0
  */
 public class InMemoryStorage implements Storage, Serializable {
+
+    /**
+     * Determines if a de-serialized file is compatible with this class.
+     */
     private static final long serialVersionUID = 1L;
+
+    /**
+     * log4j2 <code>Logger</code> object for this class
+     */
     private static final Logger logger = LogManager.getLogger();
+
+    /**
+     * Number of blocks
+     * @serial non-negative
+     */
     private int blocksNumber;
+
+    /**
+     * Size of each block in bytes
+     * @serial non-negative
+     */
     private int blockSize;
+
+    /**
+     * Represents blocks of this emulated HDD
+     * @serial array of length <code>blockSize * blocksNumber</code>
+     */
     private byte[] storage;
 
+
+    /**
+     * Default public constructor for deserialization purposes
+     */
     public InMemoryStorage() {
         blocksNumber = 0;
         blockSize = 0;
         storage = null;
     }
 
+    /**
+     * Creates instance with specified number of blocks and block size
+     *
+     * @param blocksNumber  number of blocks
+     * @param blockSize     size of block in bytes
+     */
     public InMemoryStorage(int blocksNumber, int blockSize) {
         this.blocksNumber = blocksNumber;
         this.blockSize = blockSize;
@@ -65,6 +106,9 @@ public class InMemoryStorage implements Storage, Serializable {
         System.arraycopy(data, 0, storage, blockNumber * blockSize, blockSize);
     }
 
+    /**
+     * Saves this instance's state to specified file
+     */
     public void saveToFile(File file) throws IOException {
         try (FileOutputStream fos = new FileOutputStream(file);
              ObjectOutputStream oos = new ObjectOutputStream(fos)) {
@@ -72,10 +116,25 @@ public class InMemoryStorage implements Storage, Serializable {
         }
     }
 
+    /**
+     * Creates instance with specified number of blocks and block size
+     *
+     * @param blocksNumber  number of blocks
+     * @param blockSize     size of block in bytes
+     */
     public static InMemoryStorage getStorage(int blocksNumber, int blockSize) {
         return new InMemoryStorage(blocksNumber, blockSize);
     }
 
+    /**
+     * creates a new instance and recovers it's state from the specified file
+     *
+     * @param file the file that contains serialized instance of InMemoryStorage
+     * @return a new instance with it's state recovered from specified file
+     *
+     * @throws IOException if any general I/O error occurs
+     * @throws ClassNotFoundException if Class of a serialized object cannot be found
+     */
     public static InMemoryStorage getStorageFromFile(File file)
             throws IOException, ClassNotFoundException {
         InMemoryStorage storage;

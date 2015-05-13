@@ -10,7 +10,9 @@ import java.util.Arrays;
 
 
 /**
- * Created by artem on 13.05.15.
+ * Tests methods of {@link InMemoryStorage} class.
+ *
+ * @author Artem Tsushko
  */
 public class InMemoryStorageTest {
 
