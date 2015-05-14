@@ -108,6 +108,10 @@ public class InMemoryStorage implements Storage, Serializable {
 
     /**
      * Saves this instance's state to specified file
+     *
+     * @param file the file to write a serialized form
+     *             of this Storage to
+     * @throws IOException if any usual I/O error occurs
      */
     public void saveToFile(File file) throws IOException {
         try (FileOutputStream fos = new FileOutputStream(file);
@@ -121,6 +125,7 @@ public class InMemoryStorage implements Storage, Serializable {
      *
      * @param blocksNumber  number of blocks
      * @param blockSize     size of block in bytes
+     * @return a new instance of InMemoryStorage with specified parameters
      */
     public static InMemoryStorage getStorage(int blocksNumber, int blockSize) {
         return new InMemoryStorage(blocksNumber, blockSize);
