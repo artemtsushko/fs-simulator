@@ -4,16 +4,26 @@
         <Console name="STDOUT" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{ABSOLUTE} [%p] %c{2} %m%n"/>
         </Console>
-        <File name="errorFile" fileName="logs/errors.log">
+        <File name="warningsAndErrorsTextFile" fileName="logs/errors.log" append="true">
+            <PatternLayout pattern="%d [%p] %logger{2} %m%n"/>
+        </File>
+        <File name="infoTextFile" fileName="logs/info.log" append="true">
+            <PatternLayout pattern="%d [%p] %logger{2} %m%n"/>
+        </File>
+        <File name="debugTextFile" fileName="logs/debug.log" append="true">
             <PatternLayout pattern="%d [%p] %logger{2} %m%n"/>
         </File>
     </Appenders>
     <Loggers>
         <Root level="error">
             <AppenderRef ref="errorFile"/>
-        </Root>
-        <Logger name="com.tsushko.spos.fs" level="info">
             <AppenderRef ref="STDOUT"/>
+        </Root>
+        <Logger name="com.tsushko.spos.fs" level="debug" additivity="false">
+            <AppenderRef ref="debugTextFile" level="debug"/>
+            <AppenderRef ref="STDOUT" level="info"/>
+            <AppenderRef ref="infoTextFile" level="info"/>
+            <AppenderRef ref="warningsAndErrorsTextFile" level="warn"/>
         </Logger>
     </Loggers>
 </Configuration>
