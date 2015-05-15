@@ -144,7 +144,7 @@ public class FileSystem {
      * Allows to manipulate iNode fields. In order to apply any
      * changes this object should be written back to storage.
      */
-    public class INode {
+    private class INode {
 
         /**
          * index of the iNode represented, a value in range
