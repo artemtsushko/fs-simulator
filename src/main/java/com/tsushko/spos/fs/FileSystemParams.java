@@ -136,6 +136,16 @@ public class FileSystemParams {
      */
     public final int filesBlockIndex;
 
+    /**
+     * The maximum number of files that can be opened
+     * at the same time, excluding the directory
+     */
+    public final int maxOpenFiles;
+
+    /**
+     * Size of the open files table
+     */
+    public final int openFilesTableSize;
 
 
     /**
@@ -145,13 +155,17 @@ public class FileSystemParams {
      * @param blockSize    size of each block of emulated IO device
      * @param blocksNumber number of blocks in emulated IO device
      * @param iNodesNumber number of iNodes
+     * @param maxOpenFilesNumber maximum number of files that can be opened
+     *                           at the same time, excluding the directory
      *
      * @see Storage
      */
-    private FileSystemParams(int blockSize, int blocksNumber, int iNodesNumber) {
+    private FileSystemParams(int blockSize, int blocksNumber, int iNodesNumber,
+                             int maxOpenFilesNumber) {
         this.blockSize = blockSize;
         this.blocksNumber = blocksNumber;
         this.iNodesNumber = iNodesNumber;
+        this.maxOpenFiles = maxOpenFilesNumber;
 
         if (this.blocksNumber % (Byte.SIZE * this.blockSize) == 0) {
             blocksForBitmap = this.blocksNumber / (Byte.SIZE * this.blockSize);
@@ -169,7 +183,7 @@ public class FileSystemParams {
 
         filesBlockIndex = iNodesBlockIndex + blocksForINodes;
 
-
+        openFilesTableSize = maxOpenFiles + 1;
     }
 
     /**
@@ -177,21 +191,25 @@ public class FileSystemParams {
      * instance of <code>FileSystemParams</code>, with the rest of parameters
      * either constant or derived (calculated).
      *
-     * @param blockSize    size of each block of emulated IO device
-     * @param blocksNumber number of blocks in emulated IO device
-     * @param iNodesNumber number of iNodes
+     * @param blockSize          size of each block of emulated IO device
+     * @param blocksNumber       number of blocks in emulated IO device
+     * @param iNodesNumber       number of iNodes
+     * @param maxOpenFilesNumber maximum number of files that can be opened
+     *                           at the same time, excluding the directory
      * @return new instance of FileSystemParams
      * @throws IllegalArgumentException if the input arguments don't fulfill
      *         the minimal requirements or don't match each other
      *
      * @see Storage
      */
-    public static FileSystemParams getInstance(int blockSize, int blocksNumber, int iNodesNumber) {
+    public static FileSystemParams getInstance(int blockSize, int blocksNumber,
+                                               int iNodesNumber, int maxOpenFilesNumber) {
         if(blockSize <= MIN_BLOCK_SIZE) {
             throw new IllegalArgumentException("The specified size of block is too small. "
                     + "The minimal supported block size is " + MIN_BLOCK_SIZE);
         }
-        FileSystemParams instance = new FileSystemParams(blockSize,blocksNumber,iNodesNumber);
+        FileSystemParams instance = new FileSystemParams(blockSize,blocksNumber,
+                                                         iNodesNumber,maxOpenFilesNumber);
         if(blocksNumber <= instance.filesBlockIndex) {
             throw new IllegalArgumentException("The specified number of blocks is too small. "
                     + "You need at least " + instance.filesBlockIndex + " blocks to hold "
@@ -208,6 +226,8 @@ public class FileSystemParams {
      * <li><code>blockSize</code> - size of block in emulated IO device</li>
      * <li><code>blocksNumber</code> - number of blocks in emulated IO device</li>
      * <li><code>iNodesNumber</code> - number of iNodes</li>
+     * <li><code>maxOpenFilesNumber</code> -  maximum number of files
+     * that can be opened at the same time, excluding the directory</li>
      * </ul>
      *
      * @param properties Properties object containing the properties listed above
@@ -220,20 +240,25 @@ public class FileSystemParams {
         int blockSize = Integer.parseInt(properties.getProperty("blockSize"));
         int blocksNumber = Integer.parseInt(properties.getProperty("blocksNumber"));
         int iNodesNumber = Integer.parseInt(properties.getProperty("iNodesNumber"));
-        return getInstance(blockSize, blocksNumber, iNodesNumber);
+        int maxOpenFilesNumber = Integer.parseInt(
+                properties.getProperty("maxOpenFilesNumber"));
+        return getInstance(blockSize, blocksNumber, iNodesNumber, maxOpenFilesNumber);
     }
 
     /**
      * Takes file system parameters from the superblock of specified Storage.
      *
      * @param storage a Storage object, restored from backup file
+     * @param maxOpenFilesNumber maximum number of files that can be opened
+     *                           at the same time, excluding the directory
      * @return new instance of FileSystemParams
      * @throws VersionMismatchException if the version of file system on the storage
      * doesn't match the current version of file system data format
      * @see #FILE_SYSTEM_VERSION
      * @see Storage
      */
-    public static FileSystemParams getInstance(Storage storage) throws VersionMismatchException{
+    public static FileSystemParams getInstance(Storage storage, int maxOpenFilesNumber)
+            throws VersionMismatchException{
         byte[] superblock = storage.readBlock(SUPER_BLOCK_INDEX);
         ByteBuffer byteBuffer = ByteBuffer.wrap(superblock);
         int version = byteBuffer.getInt();
@@ -242,6 +267,7 @@ public class FileSystemParams {
         int blockSize = byteBuffer.getInt();
         int blocksNumber = byteBuffer.getInt();
         int iNodesNumber = byteBuffer.getInt();
-        return new FileSystemParams(blockSize,blocksNumber,iNodesNumber);
+        return new FileSystemParams(blockSize,blocksNumber,
+                                    iNodesNumber,maxOpenFilesNumber);
     }
 }
