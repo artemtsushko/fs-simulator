@@ -354,4 +354,65 @@ public class FileSystem {
         }
     };
 
+    /**
+     * sequentially read a number of bytes from the file with specified index
+     * starting from current position in the file
+     *
+     * @param index index of the file in OFT
+     * @param count number of bytes to read
+     * @return array of bytes read from the file
+     * @throws ReadWriteException if end of file is reached before reading
+     *         count bytes
+     * @throws IllegalArgumentException if the file with specified index is not
+     *         opened
+     */
+    public byte[] read(int index, int count) throws ReadWriteException{
+
+        return null;
+    }
+
+
+    /**
+     * sequentially writes all bytes from <code>src</code> to the file
+     * with specified index starting from current position in the file
+     *
+     * @param index index of the file in OFT
+     * @param src array of bytes to write to file
+     * @throws ReadWriteException if max file size was reached
+     *         or if no free space left to expand the file
+     * @throws IllegalArgumentException if the file with specified index
+     *         is not opened
+     */
+    public void write(int index, byte[] src) throws ReadWriteException{
+
+    }
+
+
+    /**
+     * moves the current position of the file with specified index
+     * to <code>pos</code>, where pos is an integer specifying
+     * the number of bytes from the beginning of the file.
+     * <p>
+     * When a file is initially opened, the current position
+     * is automatically set to zero. After each read or write operation,
+     * it points to the byte immediately following the one
+     * that was accessed last.
+     * <code>lseek</code> permits the position to be explicitly changed
+     * without reading or writing the data. Seeking to position 0
+     * implements a reset command, so that the entire file
+     * can be reread or rewritten from the beginning.
+     *
+     * @param index index of the file in OFT
+     * @param pos an integer specifying the number of bytes
+     *            from the beginning of the file
+     *
+     * @throws IllegalArgumentException if if the file with specified index
+     *         is not opened
+     * @throws IndexOutOfBoundsException if pos is greater than the file length
+     */
+    public void lseek(int index, int pos) {
+
+    }
+
+
 }
