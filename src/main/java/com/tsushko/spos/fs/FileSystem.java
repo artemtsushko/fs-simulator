@@ -3,13 +3,15 @@ package com.tsushko.spos.fs;
 import java.nio.ByteBuffer;
 
 /**
- * Emulates simple file system
+ * Emulates simple file system.
  *
  * @author Artem Tsushko
  * @author Ivan Chernuha
  */
 public class FileSystem {
+
     private Storage storage;
+
     private FileSystemParams params;
 
     /**
