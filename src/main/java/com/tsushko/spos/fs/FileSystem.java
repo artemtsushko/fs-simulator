@@ -186,6 +186,12 @@ public class FileSystem {
         }
 
         public void writeToStorage() {
+            // check index
+            if (index >= params.iNodesNumber) {
+                throw new IndexOutOfBoundsException("incorrect iNode index: "
+                        + "expected in range [0," + params.iNodesNumber + "), "
+                        + "actual " + index);
+            }
 
             // get byte[] representation of this iNode
             byte[] iNodeBytes = new byte[FileSystemParams.INODE_SIZE];
@@ -197,6 +203,7 @@ public class FileSystem {
             buffer.flip();
             buffer.get(iNodeBytes);
 
+            // offset relative to first block containing iNodes: params.iNodesBlockIndex
             int offsetBytes = index * FileSystemParams.INODE_SIZE % params.blockSize;
             int offsetBlocks = index * FileSystemParams.INODE_SIZE / params.blockSize;
 
@@ -216,6 +223,57 @@ public class FileSystem {
                 System.arraycopy(iNodeBytes,lengthInBlock1,block2,0,lengthInBlock2);
                 storage.writeBlock(block2,params.iNodesBlockIndex + offsetBlocks + 1);
             }
+        }
+
+        /**
+         * constructs a new INode object that is a representation
+         * of the iNode with specified index stored on Storage
+         *
+         * @param index index of iNode to read from Storage
+         * @return An INode object representing the iNode
+         *         with specified index on Storage
+         */
+        public INode readFromStorage(int index) {
+            if (index >= params.iNodesNumber) {
+                throw new IndexOutOfBoundsException("incorrect iNode index: "
+                        + "expected in range [0," + params.iNodesNumber + "), "
+                        + "actual " + index);
+            }
+
+            // offset relative to first block containing iNodes: params.iNodesBlockIndex
+            int offsetBytes = index * FileSystemParams.INODE_SIZE % params.blockSize;
+            int offsetBlocks = index * FileSystemParams.INODE_SIZE / params.blockSize;
+
+            // the length of the part of iNode bytes that will be written to the next block
+            int lengthInBlock2 = (offsetBytes + FileSystemParams.INODE_SIZE) % params.blockSize;
+
+            // the length of the part of iNode bytes that will be written to the current block
+            int lengthInBlock1 = FileSystemParams.INODE_SIZE - lengthInBlock2;
+
+            // get byte[] representation of the iNode constructed
+            byte[] iNodeBytes = new byte[FileSystemParams.INODE_SIZE];
+
+            byte[] block1 = storage.readBlock(params.iNodesBlockIndex + offsetBlocks);
+            System.arraycopy(block1,offsetBytes,iNodeBytes,0,lengthInBlock1);
+
+            // if our iNode resides in two disk blocks
+            if (lengthInBlock2 != 0) {
+                byte[] block2 = storage.readBlock(params.iNodesBlockIndex + offsetBlocks + 1);
+                System.arraycopy(block2,0,iNodeBytes,lengthInBlock1,lengthInBlock2);
+            }
+
+            int length;
+            int[] blockIndexes = new int[FileSystemParams.INODE_BLOCK_LINKS_NUMBER];
+
+            // take length and blockIndexes out from byte representation
+            ByteBuffer buffer = ByteBuffer.wrap(iNodeBytes);
+            length = buffer.getInt();
+            for(int i = 0; i < blockIndexes.length; ++i) {
+                blockIndexes[i] = buffer.getInt();
+            }
+
+            // construct object
+            return new INode(index,length,blockIndexes);
         }
 
     }
