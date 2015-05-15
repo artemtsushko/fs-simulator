@@ -15,6 +15,13 @@ public class FileSystem {
     private FileSystemParams params;
 
     /**
+     * Open files table, which keeps track of open files
+     * The <code>OFT[0]</code> entry is reserved for the directory,
+     * it is always open
+     */
+    private File[] OFT;
+
+    /**
      * Constructs new <code>FileSystem</code> with specified parameters
      * on new <code>InMemoryStorage</code>
      *
@@ -47,7 +54,11 @@ public class FileSystem {
         directory.length = 0;
         directory.writeToStorage();
 
-        //TODO: open directory in OFT[0]
+        // create OFT
+        OFT = new File[params.openFilesTableSize];
+
+        //open directory in OFT[0]
+        OFT[0] = new File(directory);
     }
 
     /**
@@ -306,5 +317,41 @@ public class FileSystem {
         }
         return null;
     }
+
+    /**
+     * An entry in open files table (OFT), keeps track of an open file
+     */
+    private class File{
+        /**
+         * An INode object representing the iNode assigned to this file
+         */
+        INode iNode;
+
+        /**
+         * A buffer used by read and write operations.
+         * The buffer size is size of one block in the Storage
+         */
+        byte[] buffer;
+
+        /**
+         * The current position in the file
+         */
+        int position = 0;
+
+        /**
+         * Constructs a file table entry for the file
+         * the specified iNode points to.
+         *
+         * @param iNode INode object representing a used iNode, that is
+         *              an iNode is assigned to some file, it's length
+         *              and first block index are not -1
+         */
+        public File(INode iNode) {
+            assert  iNode.length != -1;
+            assert  iNode.blockIndexes[0] != -1;
+            this.iNode = iNode;
+            buffer = storage.readBlock(iNode.blockIndexes[0]);
+        }
+    };
 
 }
