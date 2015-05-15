@@ -307,7 +307,7 @@ public class FileSystem {
      *         or null if not found
      *
      */
-    public INode findFreeINode() {
+    private INode findFreeINode() {
 
         for (int i = 0; i < params.iNodesNumber; ++i) {
             INode iNode = readINodeFromStorage(i);
