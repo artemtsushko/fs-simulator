@@ -31,12 +31,19 @@ public class FileSystem {
         }
 
         // write free iNodes
-        for(int i = 0; i < params.iNodesNumber; ++i) {
+        for(int i = 1; i < params.iNodesNumber; ++i) {
             INode iNode = new INode(i);
             iNode.writeToStorage();
         }
 
-        //TODO: write directory
+        // write directory
+        INode directory = new INode(0);
+        int firstDirectoryBlock = findFreeBlock();
+        assert firstDirectoryBlock == params.filesBlockIndex;
+        markBlockAsUsed(firstDirectoryBlock);
+        directory.blockIndexes[0] = firstDirectoryBlock;
+        directory.writeToStorage();
+
         //TODO: open directory in OFT[0]
     }
 
