@@ -42,6 +42,7 @@ public class FileSystem {
         assert firstDirectoryBlock == params.filesBlockIndex;
         markBlockAsUsed(firstDirectoryBlock);
         directory.blockIndexes[0] = firstDirectoryBlock;
+        directory.length = 0;
         directory.writeToStorage();
 
         //TODO: open directory in OFT[0]
