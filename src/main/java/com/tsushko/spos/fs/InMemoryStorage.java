@@ -79,7 +79,7 @@ public class InMemoryStorage implements Storage, Serializable {
     public byte[] readBlock(int blockNumber) {
         if (blockNumber < 0 || blockNumber >= blocksNumber) {
             String errorMessage = "Wrong block number: "
-                    + "expected in range [0," + blocksNumber + "], "
+                    + "expected in range [0," + blocksNumber + "), "
                     + "actual " + blockNumber;
             throw new IndexOutOfBoundsException(errorMessage);
         }
@@ -98,7 +98,7 @@ public class InMemoryStorage implements Storage, Serializable {
         }
         if (blockNumber < 0 || blockNumber >= blocksNumber) {
             String errorMessage = "Wrong block number: "
-                    + "expected in range [0," + blocksNumber + "], "
+                    + "expected in range [0," + blocksNumber + "), "
                     + "actual " + blockNumber;
             throw new IndexOutOfBoundsException(errorMessage);
         }
