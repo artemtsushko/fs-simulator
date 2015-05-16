@@ -1,6 +1,7 @@
 package com.tsushko.spos.fs;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 
 /**
  * Emulates simple file system.
@@ -29,7 +30,7 @@ public class FileSystem {
      * @param fileSystemParams contains runtime and initialization parameters
      */
 
-    public FileSystemICAT(FileSystemParams fileSystemParams) {
+    public FileSystem(FileSystemParams fileSystemParams) {
         params = fileSystemParams;
         storage = InMemoryStorage.getStorage(params.blocksNumber, params.blockSize);
 
@@ -66,28 +67,28 @@ public class FileSystem {
         }
     }
 
-    @Override
+
     public void create(String filename) throws IllegalArgumentException {
 
     }
 
-    @Override
+
     public void destroy(String filename) throws IllegalArgumentException {
 
     }
 
-    @Override
+
     public int open(String filename) throws IllegalArgumentException {
 
         return -1;
     }
 
-    @Override
+
     public int close(int index) throws IllegalArgumentException {
         return -1;
     }
 
-    @Override
+
     public List<String> directory() {
 
         return null;
