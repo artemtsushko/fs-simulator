@@ -204,7 +204,7 @@ public class FileSystemParams {
      */
     public static FileSystemParams getInstance(int blockSize, int blocksNumber,
                                                int iNodesNumber, int maxOpenFilesNumber) {
-        if(blockSize <= MIN_BLOCK_SIZE) {
+        if(blockSize < MIN_BLOCK_SIZE) {
             throw new IllegalArgumentException("The specified size of block is too small. "
                     + "The minimal supported block size is " + MIN_BLOCK_SIZE);
         }
