@@ -110,8 +110,13 @@ public class FileSystem {
         // file we are read from
         File file = OFT[index];
 
-        if (count > file.iNode.length) {
-            throw new ReadWriteException("Exceed byte count!");
+        if(file == null) {
+            throw new IllegalArgumentException("No file opened with index " + index);
+        }
+
+        if (file.position + count > file.iNode.length) {
+            throw new ReadWriteException("End of file will be reached before reading "
+                                            + count + " bytes!");
         }
 
         // result buffer
@@ -156,6 +161,11 @@ public class FileSystem {
      */
     public int write(int index, byte[] src) throws ReadWriteException {
         File file = OFT[index];
+
+        if(file == null) {
+            throw new IllegalArgumentException("No file opened with index " + index);
+        }
+
         INode inode = file.iNode;
         int offset = 0;
 
@@ -206,6 +216,14 @@ public class FileSystem {
         if (pos > f.iNode.length || pos < 0)
             throw new ReadWriteException(
                     "Invalid pos! The end of the file was reached.");
+        int currentOffsetBlocks = f.position / params.blockSize;
+        int targetOffsetBlocks = pos / params.blockSize;
+        if(targetOffsetBlocks != currentOffsetBlocks) {
+            // save current buffer to Storage
+            storage.writeBlock(f.buffer,f.iNode.blockIndexes[currentOffsetBlocks]);
+            // load target block from storage to buffer
+            storage.readBlock(f.iNode.blockIndexes[targetOffsetBlocks]);
+        }
         f.position = pos;
     }
 
