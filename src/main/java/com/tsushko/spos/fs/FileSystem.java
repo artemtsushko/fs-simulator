@@ -213,6 +213,9 @@ public class FileSystem {
      */
     public void lseek(int index, int pos) throws ReadWriteException {
         File f = OFT[index];
+        if(f == null) {
+            throw new IllegalArgumentException("No file opened with index " + index);
+        }
         if (pos > f.iNode.length || pos < 0)
             throw new ReadWriteException(
                     "Invalid pos! The end of the file was reached.");
