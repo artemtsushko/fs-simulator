@@ -333,9 +333,26 @@ public class FileSystem {
         byte[] buffer;
 
         /**
+         * Indicates whether the buffered block was modified since
+         * it was loaded from or last written to the Storage
+         */
+        boolean modified;
+
+        /**
          * The current position in the file
          */
         int position = 0;
+
+        /**
+         * The index of the block link corresponding to current position
+         * in the file
+         */
+        int currentBlockLinkIndex = 0;
+
+        /**
+         * The index of the block link corresponding to the block in the buffer
+         */
+        int bufferedBlockLinkIndex = -1;
 
         /**
          * Constructs a file table entry for the file
@@ -346,12 +363,15 @@ public class FileSystem {
          *              and first block index are not -1
          */
         public File(INode iNode) {
-            assert  iNode.length != -1;
-            assert  iNode.blockIndexes[0] != -1;
+            if(iNode.length == -1 || iNode.blockIndexes[0] == -1) {
+                throw new IllegalArgumentException(
+                        "the specified iNode is free, "
+                        + "that is doesn't point to any file");
+            }
             this.iNode = iNode;
-            buffer = storage.readBlock(iNode.blockIndexes[0]);
         }
     };
+
 
     /**
      * sequentially read a number of bytes from the file with specified index
