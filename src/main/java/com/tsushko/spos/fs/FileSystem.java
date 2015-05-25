@@ -744,7 +744,7 @@ public class FileSystem {
                 byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
                 System.arraycopy(nameBytes, 0, bytes, 0,
                         Math.min(nameBytes.length,
-                                FileSystemParams.BYTES_PER_DIRECTORY_ENTRY));
+                                FileSystemParams.BYTES_PER_FILE_NAME));
             }
 
             //get iNodeIndex bytes
@@ -753,7 +753,7 @@ public class FileSystem {
             buffer.putInt(iNodeIndex);
             buffer.flip();
             buffer.get(bytes,
-                    FileSystemParams.BYTES_PER_DIRECTORY_ENTRY,
+                    FileSystemParams.BYTES_PER_FILE_NAME,
                     FileSystemParams.BYTES_PER_INODE_INDEX);
 
             return bytes;
