@@ -1,28 +1,50 @@
 package com.tsushko.spos.fs;
 
 import java.io.*;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 import java.util.Scanner;
 
 /**
  * A command line shell that users will use
- * to communicate with file system
+ * to communicate with the emulated file system
  *
  * @author Artem Tsushko
  * @version 1.0
  */
 public class Shell {
 
+    /**
+     * input stream
+     */
     private Scanner in;
+
+    /**
+     * output stream
+     */
     private PrintStream out;
+
+    /**
+     * the emulated file system
+     */
     private FileSystem fileSystem;
 
 
+    /**
+     * takes input and output streams as constructor parameters
+     * @param in the input stream
+     * @param out the output stream
+     */
     public Shell(InputStream in, PrintStream out) {
         this.in = new Scanner(in);
         this.out = out;
     }
 
+    /**
+     * starts the shell and dispatches the commands
+     * until the exit command is met
+     */
     public void run() {
         String command;
         out.println("File System Simulator v1.0");
@@ -36,6 +58,30 @@ public class Shell {
                 case "sv":
                     save();
                     break;
+                case "cr":
+                    create();
+                    break;
+                case "de":
+                    destroy();
+                    break;
+                case "op":
+                    open();
+                    break;
+                case "cl":
+                    close();
+                    break;
+                case "rd":
+                    read();
+                    break;
+                case "wr":
+                    write();
+                    break;
+                case "sk":
+                    seek();
+                    break;
+                case "dr":
+                    directory();
+                    break;
                 case "exit":
                     break;
                 default:
@@ -44,7 +90,6 @@ public class Shell {
             }
         } while (!command.equals("exit"));
     }
-
 
     /**
      * loads the FileSystem.
@@ -179,8 +224,179 @@ public class Shell {
         try {
             fileSystem.backupStorage(file);
         } catch (IOException e) {
-            out.println("error: " + e.getLocalizedMessage());
+            out.println("error: " + e.getMessage());
         }
         out.println("disk saved");
+    }
+
+    /**
+     * creates a new file.
+     * The next argument is the file's name.
+     * The name's size in bytes should be at most
+     * {@link FileSystemParams#BYTES_PER_FILE_NAME}
+     */
+    private void create() {
+        String fileName = in.next();
+        try {
+            fileSystem.create(fileName);
+            out.println("file " + fileName + " created");
+        } catch (FileAlreadyExistsException e) {
+            out.println("error: the file with name "
+                        + fileName
+                        + " already exists.");
+        } catch (ReadWriteException e) {
+            out.println("error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * removes the file with specified name and frees resources
+     * The next argument is the file's name.
+     */
+    private void destroy() {
+        String fileName = in.next();
+        try {
+            fileSystem.destroy(fileName);
+            out.println("file " + fileName + " destroyed");
+        } catch (FileNotFoundException e) {
+            out.println("error: the file with name "
+                    + fileName
+                    + " doesn't exist.");
+        }
+
+    }
+
+    /**
+     * opens the file with specified name and prints it's index,
+     * which can be used for read, write, lseek, and close operations
+     * The next argument is the file's name.
+     */
+    private void open() {
+        String fileName = in.next();
+        try {
+            int index = fileSystem.open(fileName);
+            out.println("file " + fileName + " opened, index=" + index);
+        } catch (FileNotFoundException e) {
+            out.println("error: the file with name "
+                    + fileName
+                    + " doesn't exist.");
+        } catch (OpenFilesNumberException e) {
+            out.println("error:  the maximum number of open files "
+                    + "was exceeded");
+        }
+    }
+
+    /**
+     * closes the file with specified index.
+     * The next argument is the file's index,
+     * that was returned by {@link #open()}
+     */
+    private void close() {
+        int index = in.nextInt();
+        try {
+            fileSystem.close(index);
+            out.println("file with index " + index + " closed");
+        } catch (FileNotFoundException e) {
+            out.println("error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * reads <code>count</code> bytes from file specified <code>index</code>.
+     * The 1st argument is file's <code>index</code>,
+     * the 2nd one is byte <code>count</code>.
+     */
+    private void read() {
+        int index = in.nextInt();
+        int count = in.nextInt();
+        try {
+            byte[] bytes = fileSystem.read(index,count);
+            out.println(count + " bytes read: " + getBytesString(bytes));
+        } catch (ReadWriteException | IllegalArgumentException e) {
+            out.println("error: " + e.getMessage());
+        }
+
+    }
+
+    /**
+     * converts a bytes array to string: treats each byte in the array
+     * as ASCII code of some symbol and returns a string of this symbols
+     *
+     * @param bytes an array of bytes, where each byte is treated
+     *              as ASCII code of some symbol
+     * @return  a string that is a concatenation of all symbols that
+     *          correspond to ASCII codes in input array
+     */
+    private String getBytesString(byte[] bytes) {
+        StringBuilder result = new StringBuilder();
+        for (byte b : bytes)
+            result.append((char) b);
+        return result.toString();
+    }
+
+    /**
+     * writes <code>count</code> bytes to the file
+     * with specified <code>index</code>, where each byte
+     * is an ASCII code of the given <code>character</code>.
+     * The 1st argument is file's <code>index</code>,
+     * the 2nd one is the <code>character</code>,
+     * the 3rd one is the bytes <code>count</code>.
+     */
+    private void write() {
+        int index = in.nextInt();
+        String character = in.next();
+        int count = in.nextInt();
+        byte[] bytes = getStringBytes(character,count);
+        try {
+            fileSystem.write(index,bytes);
+            out.println(count + " bytes written");
+        } catch (ReadWriteException | IllegalArgumentException e) {
+            out.println("error: " + e.getMessage());
+        }
+
+    }
+
+    /**
+     * creates a byte array where each byte is an ASCII code
+     * of the specified character
+     *
+     * @param character the character whose ASCII code will be used
+     *                  to fill in the bytes array
+     * @param count the size of the result byte array
+     * @return  a byte array where each byte is an ASCII code
+     *          of the specified character
+     */
+    private byte[] getStringBytes(String character, int count) {
+        byte[] bytes = new byte[count];
+        byte ch = character.getBytes()[0];
+        Arrays.fill(bytes,ch);
+        return bytes;
+    }
+
+    /**
+     * moves the position of the file with specified <code>index</code>
+     * to the desired position <code>pos</code>.
+     * The 1st argument is file's <code>index</code>,
+     * the 2nd one is <code>pos</code>.
+     */
+    private void seek() {
+        int index = in.nextInt();
+        int pos = in.nextInt();
+        try {
+            fileSystem.lseek(index, pos);
+            out.println("current position is " + pos);
+        } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
+            out.println("error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * list's the files in the directory and their sizes
+     */
+    private void directory() {
+        List<String> directory = fileSystem.directory();
+        for (String entry : directory) {
+            out.println(entry);
+        }
     }
 }
