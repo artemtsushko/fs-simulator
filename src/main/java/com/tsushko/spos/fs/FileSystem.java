@@ -1,7 +1,11 @@
 package com.tsushko.spos.fs;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -11,6 +15,8 @@ import java.util.Objects;
  * @author Artem Tsushko
  */
 public class FileSystem {
+
+    private static final Logger logger = LogManager.getLogger();
 
     private Storage storage;
 
@@ -718,6 +724,23 @@ public class FileSystem {
             return bytes;
         }
 
+        /**
+         * writes this directory entry to the directory slot
+         * with specified index
+         *
+         * @param index index of the target directory slot
+         */
+        public void writeDirectoryEntry(int index) {
+            try {
+                lseek(0, index * FileSystemParams.BYTES_PER_DIRECTORY_ENTRY);
+                write(0, getBytes());
+
+            } catch (Exception e) {
+                throw new IllegalArgumentException("The directory slot " +
+                        "with index " + index + " doesn't exist");
+            }
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -729,6 +752,110 @@ public class FileSystem {
         @Override
         public int hashCode() {
             return Objects.hash(name);
+        }
+    }
+
+    /**
+     * returns index of the directory entry corresponding to the specified file
+     * or -1 if the file is not present in the directory
+     * @param fileName symbolic name of the file to look for
+     * @return index of the directory entry corresponding to the specified file
+     *         or -1 if the file is not present in the directory
+     */
+    private int findFileInDirectory(String fileName) {
+        DirectoryEntry searchPattern = new DirectoryEntry(fileName,-1);
+        DirectoryEntry currentEntry;
+        File directory = OFT[0];
+
+        directory.lseek(0);
+        for (int pos = 0;
+             pos < directory.iNode.length;
+             pos += FileSystemParams.BYTES_PER_DIRECTORY_ENTRY) {
+            try {
+                currentEntry = new DirectoryEntry(
+                        directory.read(FileSystemParams.BYTES_PER_DIRECTORY_ENTRY));
+                if (currentEntry.equals(searchPattern)) {
+                    return pos / FileSystemParams.BYTES_PER_DIRECTORY_ENTRY;
+                }
+            } catch (ReadWriteException e) {
+                logger.error(e);
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * searches through the directory and returns the index of first free slot
+     * or -1 if the directory is full
+     * @return  index of the first free slot in the directory
+     *          or -1 if the directory is full
+     */
+    private int findFreeDirectoryEntry() {
+        int slotIndex = 0;
+        File directory = OFT[0];
+        byte[] searchPattern
+                = new byte[FileSystemParams.BYTES_PER_DIRECTORY_ENTRY];
+        byte[] currentEntry;
+
+
+        directory.lseek(0);
+        for (int pos = 0;
+             pos < directory.iNode.length;
+             pos += FileSystemParams.BYTES_PER_DIRECTORY_ENTRY) {
+            try {
+                currentEntry = directory.read(FileSystemParams.BYTES_PER_DIRECTORY_ENTRY);
+                if (Arrays.equals(currentEntry, searchPattern)) {
+                    return pos / FileSystemParams.BYTES_PER_DIRECTORY_ENTRY;
+                }
+            } catch (ReadWriteException e) {
+                logger.error(e);
+            }
+        }
+        if(params.maxFileSize - directory.iNode.length
+                > FileSystemParams.BYTES_PER_DIRECTORY_ENTRY) {
+            return directory.iNode.length
+                    / FileSystemParams.BYTES_PER_DIRECTORY_ENTRY;
+        } else {
+            return -1;
+        }
+    }
+
+    /**
+     * reads the directory entry with specified index
+     * from the directory on storage
+     *
+     * @param index the index of the directory entry
+     * @return object representation of the directory
+     *         entry with specified index
+     */
+    private DirectoryEntry readDirectoryEntry(int index) {
+        try {
+            lseek(0, index * FileSystemParams.BYTES_PER_DIRECTORY_ENTRY);
+            byte[] directoryEntryBytes
+                    = read(0,FileSystemParams.BYTES_PER_DIRECTORY_ENTRY);
+            return new DirectoryEntry(directoryEntryBytes);
+
+        } catch (Exception e) {
+            throw new IllegalArgumentException("The directory entry " +
+                    "with index " + index + " doesn't exist");
+        }
+    }
+
+    /**
+     * frees the directory slot with specified index
+     * @param index index of the directory entry
+     *              that will be removed
+     */
+    private void removeDirectoryEntry(int index) {
+        byte[] freeSlot
+                = new byte[FileSystemParams.BYTES_PER_DIRECTORY_ENTRY];
+        try {
+            lseek(0, index * FileSystemParams.BYTES_PER_DIRECTORY_ENTRY);
+            write(0, freeSlot);
+
+        } catch (Exception e) {
+            throw new IllegalArgumentException("The directory entry " +
+                    "with index " + index + " doesn't exist");
         }
     }
 
