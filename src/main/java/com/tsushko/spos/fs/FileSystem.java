@@ -267,7 +267,10 @@ public class FileSystem {
             int offsetBlocks = index * FileSystemParams.INODE_SIZE / params.blockSize;
 
             // the length of the part of iNode bytes that will be written to the next block
-            int lengthInBlock2 = (offsetBytes + FileSystemParams.INODE_SIZE) % params.blockSize;
+            int lengthInBlock2 =  (offsetBytes + FileSystemParams.INODE_SIZE) > params.blockSize
+                    ? (offsetBytes + FileSystemParams.INODE_SIZE) % params.blockSize
+                    : 0;
+
 
             // the length of the part of iNode bytes that will be written to the current block
             int lengthInBlock1 = FileSystemParams.INODE_SIZE - lengthInBlock2;
@@ -305,7 +308,9 @@ public class FileSystem {
         int offsetBlocks = index * FileSystemParams.INODE_SIZE / params.blockSize;
 
         // the length of the part of iNode bytes that will be written to the next block
-        int lengthInBlock2 = (offsetBytes + FileSystemParams.INODE_SIZE) % params.blockSize;
+        int lengthInBlock2 =  (offsetBytes + FileSystemParams.INODE_SIZE) > params.blockSize
+                ? (offsetBytes + FileSystemParams.INODE_SIZE) % params.blockSize
+                : 0;
 
         // the length of the part of iNode bytes that will be written to the current block
         int lengthInBlock1 = FileSystemParams.INODE_SIZE - lengthInBlock2;
