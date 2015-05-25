@@ -47,6 +47,12 @@ public class FileSystemParams {
     public static final int BYTES_PER_FILE_NAME = 4;
 
     /**
+     * number of bytes to store a directory entry
+     */
+    public static final int BYTES_PER_DIRECTORY_ENTRY
+            = BYTES_PER_FILE_NAME + BYTES_PER_INODE_INDEX;
+
+    /**
      * Number of links to blocks of the <code>Storage</code> in each iNode
      */
     public static final int INODE_BLOCK_LINKS_NUMBER = 3;

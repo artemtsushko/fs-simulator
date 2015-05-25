@@ -1,6 +1,9 @@
 package com.tsushko.spos.fs;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * Emulates simple file system
@@ -616,6 +619,118 @@ public class FileSystem {
         file.lseek(pos);
     }
 
+    /**
+     * a convenience class to represent a directory entry
+     */
+    private class DirectoryEntry {
+
+        /**
+         * the name of file or null if entry is empty
+         */
+        String name;
+
+        /**
+         * the index of iNode corresponding to the file
+         */
+        int iNodeIndex;
+
+
+        /**
+         * constructs an object representation of a directory entry
+         * with given parameters, that can be later converted to bytes
+         * and written to directory file on storage
+         *
+         * @param fileName name of file,
+         *                 max {@link FileSystemParams#BYTES_PER_FILE_NAME}
+         *                 bytes. If the name is larger, it will be cut.
+         * @param iNodeIndex index of iNode representing the file
+         */
+        public DirectoryEntry(String fileName, int iNodeIndex) {
+
+            // construct name
+            if(fileName.length() > FileSystemParams.BYTES_PER_FILE_NAME)
+                this.name = fileName.substring(
+                        0,FileSystemParams.BYTES_PER_FILE_NAME);
+            else
+                this.name = fileName;
+
+            // construct iNode index
+            this.iNodeIndex = iNodeIndex;
+        }
+
+        /**
+         * Constructs an instance of the DirectoryEntry class
+         * form a directory entry's byte representation
+         * in the directory file on storage
+         * @param byteRepresentation directory entry's byte representation
+         *                           in the directory file on storage
+         */
+        public DirectoryEntry(byte[] byteRepresentation) {
+
+            // construct name
+            StringBuilder buffer = new StringBuilder();
+            int i;
+            for (i = 0; i < FileSystemParams.BYTES_PER_FILE_NAME; ++i) {
+                if (byteRepresentation[i] == 0)
+                    break;
+                buffer.append((char) byteRepresentation[i]);
+            }
+            if (i != 0) {
+                name = buffer.toString();
+            } else {
+                name = null;
+            }
+
+            // get iNode index
+            iNodeIndex = ByteBuffer.wrap(byteRepresentation,
+                            FileSystemParams.BYTES_PER_FILE_NAME,
+                            FileSystemParams.BYTES_PER_INODE_INDEX)
+                    .getInt();
+
+        }
+
+
+
+        /**
+         * returns byte representation of this entry
+         * @return byte representation of this entry
+         */
+        byte[] getBytes() {
+            byte[] bytes = new byte[FileSystemParams.BYTES_PER_DIRECTORY_ENTRY];
+
+            // get name bytes
+            if (name != null && name.length() > 0) {
+                byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
+                System.arraycopy(nameBytes, 0, bytes, 0,
+                        Math.min(nameBytes.length,
+                                FileSystemParams.BYTES_PER_DIRECTORY_ENTRY));
+            }
+
+            //get iNodeIndex bytes
+            ByteBuffer buffer =
+                    ByteBuffer.allocate(FileSystemParams.BYTES_PER_INODE_INDEX);
+            buffer.putInt(iNodeIndex);
+            buffer.flip();
+            buffer.get(bytes,
+                    FileSystemParams.BYTES_PER_DIRECTORY_ENTRY,
+                    FileSystemParams.BYTES_PER_INODE_INDEX);
+
+            return bytes;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            DirectoryEntry that = (DirectoryEntry) o;
+            return Objects.equals(name, that.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name);
+        }
+    }
 
 
 }
