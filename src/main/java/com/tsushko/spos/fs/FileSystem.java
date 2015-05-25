@@ -114,7 +114,7 @@ public class FileSystem {
         superblockBuffer.putInt(params.iNodesNumber);
         superblockBuffer.flip();
         byte[] superblock = new byte[params.blockSize];
-        superblockBuffer.get(superblock);
+        superblockBuffer.get(superblock,0,FileSystemParams.SUPER_BLOCK_SIZE);
         storage.writeBlock(superblock,FileSystemParams.SUPER_BLOCK_INDEX);
     }
 
