@@ -95,7 +95,7 @@ public class FileSystem {
         OFT = new File[params.openFilesTableSize];
 
         //open directory in OFT[0]
-        INode directory = new INode(0);
+        INode directory = readINodeFromStorage(0);
         OFT[0] = new File(directory);
     }
 
