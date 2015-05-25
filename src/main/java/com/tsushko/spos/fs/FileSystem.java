@@ -78,6 +78,26 @@ public class FileSystem {
     }
 
     /**
+     * Constructs the file system object to manipulate the
+     * file system on the specified storage.
+     *
+     * @param fileSystemParams contains runtime and initialization parameters,
+     *                         recovered from the superblock on the storage
+     * @param storage the storage on which the file system is deployed
+     */
+    public FileSystem(FileSystemParams fileSystemParams, Storage storage) {
+        this.params = fileSystemParams;
+        this.storage = storage;
+
+        // create OFT
+        OFT = new File[params.openFilesTableSize];
+
+        //open directory in OFT[0]
+        INode directory = new INode(0);
+        OFT[0] = new File(directory);
+    }
+
+    /**
      * writes down file system parameters to the superblock
      * of the specified <code>Storage</code>
      *
