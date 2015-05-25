@@ -2,7 +2,6 @@ package com.tsushko.spos.fs;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -11,16 +10,25 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Emulates simple file system
+ * Emulates a simple file system. The file system is deployed on
+ * a {@link Storage}. All it's parameters are specified by a
+ * {@link FileSystemParams} object.
  *
  * @author Artem Tsushko
+ * @version 1.0
  */
 public class FileSystem {
 
     private static final Logger logger = LogManager.getLogger();
 
+    /**
+     * a storage on which the file system is deployed
+     */
     private Storage storage;
 
+    /**
+     * holds all the parameters of this file system
+     */
     private FileSystemParams params;
 
     /**
@@ -36,7 +44,6 @@ public class FileSystem {
      *
      * @param fileSystemParams contains runtime and initialization parameters
      */
-
     public FileSystem(FileSystemParams fileSystemParams) {
         params = fileSystemParams;
         storage = InMemoryStorage.getStorage(params.blocksNumber, params.blockSize);
@@ -567,7 +574,6 @@ public class FileSystem {
         return file.read(count);
     }
 
-
     /**
      * Sequentially writes all bytes from <code>src</code> to the file
      * with specified index starting from current position in the file
@@ -594,7 +600,6 @@ public class FileSystem {
         file.write(src);
 
     }
-
 
     /**
      * moves the current position of the file with specified index
@@ -914,6 +919,8 @@ public class FileSystem {
      * removes the file with specified name and frees resources
      *
      * @param name symbolic name of the file
+     * @throws FileNotFoundException if the file with specified name
+     *                               doesn't exist in the directory
      */
     public void destroy(String name)
             throws  FileNotFoundException {
@@ -946,7 +953,7 @@ public class FileSystem {
     }
 
     /**
-     * lists the names of all file and their length
+     * lists the names of all files and their lengths
      * @return list of strings like file_name|file_size
      */
     public List<String> directory() {
@@ -1026,7 +1033,7 @@ public class FileSystem {
      *
      * @param index index of the file in OFT,
      *              that was returned by
-     *              {@link this#open(String)}
+     *              {@link #open(String)}
      * @throws FileNotFoundException    if the file with specified index
      *                                  is not opened
      */
