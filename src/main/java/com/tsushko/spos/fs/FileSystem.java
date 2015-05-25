@@ -6,6 +6,7 @@ import org.apache.logging.log4j.Logger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
@@ -654,7 +655,9 @@ public class FileSystem {
         public DirectoryEntry(String fileName, int iNodeIndex) {
 
             // construct name
-            if(fileName.length() > FileSystemParams.BYTES_PER_FILE_NAME)
+            if(fileName != null
+                    && fileName.length()
+                    > FileSystemParams.BYTES_PER_FILE_NAME)
                 this.name = fileName.substring(
                         0,FileSystemParams.BYTES_PER_FILE_NAME);
             else
@@ -730,7 +733,7 @@ public class FileSystem {
          *
          * @param index index of the target directory slot
          */
-        public void writeDirectoryEntry(int index) {
+        public void writeToDirectory(int index) {
             try {
                 lseek(0, index * FileSystemParams.BYTES_PER_DIRECTORY_ENTRY);
                 write(0, getBytes());
@@ -859,5 +862,118 @@ public class FileSystem {
         }
     }
 
+    /**
+     * creates a new file with specified name
+     * @param name symbolic file name, maximum length is
+     *             {@link FileSystemParams#MAX_FILE_NAME_LENGTH}
+     * @throws FileAlreadyExistsException if the file with specified
+     *                                    symbolic name already exists
+     *                                    in the directory
+     * @throws ReadWriteException   if the file system is out of some resource,
+     *                              like storage blocks, iNodes
+     *                              or directory slots
+     */
+    public void create(String name)
+            throws  FileAlreadyExistsException,
+                    ReadWriteException {
+
+        // check if the file with specified name exists
+        if (findFileInDirectory(name) != -1)
+            throw new FileAlreadyExistsException();
+
+        // find free directory slot
+        int dirEntryIndex = findFreeDirectoryEntry();
+        if (dirEntryIndex == -1) {
+            throw new ReadWriteException("Out of free directory slots");
+        }
+
+        // find free iNode
+        INode iNode = findFreeINode();
+        if (iNode == null) {
+            throw new ReadWriteException("Out of free iNodes");
+        }
+        int iNodeIndex = iNode.index;
+
+        // find free storage block
+        int blockIndex = findFreeBlock();
+        if (blockIndex == -1) {
+            throw new ReadWriteException("Out of free space");
+        }
+
+        // create a file
+        iNode.length = 0;
+        iNode.blockIndexes[0] = blockIndex;
+        markBlockAsUsed(blockIndex);
+        iNode.writeToStorage();
+        DirectoryEntry directoryEntry = new DirectoryEntry(name,iNodeIndex);
+        directoryEntry.writeToDirectory(dirEntryIndex);
+
+    }
+
+    /**
+     * removes the file with specified name and frees resources
+     *
+     * @param name symbolic name of the file
+     */
+    public void destroy(String name)
+            throws  FileNotFoundException {
+
+        int dirEntryIndex = findFileInDirectory(name);
+
+        // check if the file with specified name exists
+        if (dirEntryIndex == -1)
+            throw new FileNotFoundException();
+
+        // find occupied resources
+        DirectoryEntry directoryEntry = readDirectoryEntry(dirEntryIndex);
+        int iNodeIndex = directoryEntry.iNodeIndex;
+        INode iNode = readINodeFromStorage(iNodeIndex);
+        int[] blockIndexes = iNode.blockIndexes;
+
+        // release resources
+
+        // TODO: close file (?)
+
+        // remove directory entry
+        removeDirectoryEntry(dirEntryIndex);
+
+        // release iNode
+        iNode = new INode(iNodeIndex);
+        iNode.writeToStorage();
+
+        // release storage blocks
+        for (int blockIndex : blockIndexes) {
+            markBlockAsFree(blockIndex);
+        }
+    }
+
+    /**
+     * lists the names of all file and their length
+     * @return list of strings like file_name|file_size
+     */
+    public List<String> directory() {
+        List<String> result = new LinkedList<>();
+        DirectoryEntry emptyEntry = new DirectoryEntry(null,-1);
+        DirectoryEntry currentEntry;
+        File directory = OFT[0];
+
+        directory.lseek(0);
+        for (int pos = 0;
+             pos < directory.iNode.length;
+             pos += FileSystemParams.BYTES_PER_DIRECTORY_ENTRY) {
+            try {
+                currentEntry = new DirectoryEntry(
+                        directory.read(FileSystemParams.BYTES_PER_DIRECTORY_ENTRY));
+                if (!currentEntry.equals(emptyEntry)) {
+                    int size = readINodeFromStorage(currentEntry.iNodeIndex).length;
+                    result.add(currentEntry.name + "\t" + size + "B");
+                }
+            } catch (ReadWriteException e) {
+                logger.error(e);
+            }
+        }
+
+        return result;
+    }
 
 }
