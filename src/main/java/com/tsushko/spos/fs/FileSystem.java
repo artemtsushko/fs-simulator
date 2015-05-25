@@ -173,7 +173,7 @@ public class FileSystem {
                 for (int bitmapBitIndex = 0;
                      bitmapBitIndex < Byte.SIZE;
                      ++bitmapBitIndex) {
-                    if (((bitmapByte>>bitmapBitIndex) & 1) != 0) {
+                    if (((bitmapByte>>bitmapBitIndex) & 1) == 0) {
                         int index = (((bitmapBlockIndex * params.blockSize)
                                         + bitmapByteIndex) * Byte.SIZE)
                                         + bitmapBitIndex;
