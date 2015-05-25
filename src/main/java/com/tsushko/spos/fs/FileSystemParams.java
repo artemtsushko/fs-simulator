@@ -147,6 +147,11 @@ public class FileSystemParams {
      */
     public final int openFilesTableSize;
 
+    /**
+     * Maximum length of file in bytes
+     */
+    public final int maxFileSize;
+
 
     /**
      * Takes all user-specified parameters as constructor arguments.
@@ -184,6 +189,8 @@ public class FileSystemParams {
         filesBlockIndex = iNodesBlockIndex + blocksForINodes;
 
         openFilesTableSize = maxOpenFiles + 1;
+
+        maxFileSize = Math.min(blockSize * INODE_BLOCK_LINKS_NUMBER, Integer.MAX_VALUE);
     }
 
     /**

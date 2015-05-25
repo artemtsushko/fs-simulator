@@ -370,6 +370,167 @@ public class FileSystem {
             }
             this.iNode = iNode;
         }
+
+
+        /**
+         * Reads <code>count</code> bytes from this file starting from
+         * the current position in the file
+         * @param count number of bytes to read
+         * @return the bytes read from this file
+         * @throws ReadWriteException if end of file is reached before reading
+         *         count bytes
+         */
+        public byte[] read(int count) throws ReadWriteException{
+
+            if (position + count > iNode.length) {
+                throw new ReadWriteException("End of file will be reached before reading "
+                        + count + " bytes!");
+            }
+
+            // the buffer to collect the data read from this file
+            byte[] result = new byte[count];
+
+            if(currentBlockLinkIndex != bufferedBlockLinkIndex) {
+                loadCurrentBlock();
+            }
+
+            // position in the current block
+            int offsetInBlock = position % params.blockSize;
+
+            // number of bytes to read from the current block
+            int bytesToRead = Math.min(count, params.blockSize - offsetInBlock);
+
+            // current write position in result buffer
+            int offsetInResult = 0;
+
+            System.arraycopy(buffer,offsetInBlock,result,offsetInResult,bytesToRead);
+
+            offsetInResult += bytesToRead;
+            position += bytesToRead;
+            currentBlockLinkIndex =  position / params.blockSize;
+            count -= bytesToRead;
+
+            offsetInBlock = 0;
+            while (count != 0) {
+                assert count > 0;
+                loadCurrentBlock();
+                bytesToRead = Math.min(count, params.blockSize);
+                System.arraycopy(buffer,offsetInBlock,result,offsetInResult,bytesToRead);
+                offsetInResult += bytesToRead;
+                position += bytesToRead;
+                currentBlockLinkIndex =  position / params.blockSize;
+                count -= bytesToRead;
+            }
+            return result;
+        }
+
+        /**
+         * Loads the block corresponding to <code>currentBlockLinkIndex</code>
+         * (if it exists) into <code>buffer</code> or allocates a new block
+         * if <code>currentBlockLinkIndex</code> is -1.
+         * @throws ReadWriteException if no free space left to allocate a new block
+         */
+        void loadCurrentBlock() throws ReadWriteException{
+            if(modified) {
+                // should not happen because in this case modified will be false
+                assert bufferedBlockLinkIndex != -1;
+
+                storage.writeBlock(buffer,iNode.blockIndexes[bufferedBlockLinkIndex]);
+            }
+            if (iNode.blockIndexes[currentBlockLinkIndex] != -1) {
+                buffer = storage.readBlock(iNode.blockIndexes[currentBlockLinkIndex]);
+            } else {
+                int freeBlockIndex = findFreeBlock();
+                if (freeBlockIndex == -1) {
+                    // update file length
+                    iNode.length = position;
+                    iNode.writeToStorage();
+
+                    throw new ReadWriteException("No free space left "
+                            + "to expand the file");
+                }
+                iNode.blockIndexes[currentBlockLinkIndex] = freeBlockIndex;
+                markBlockAsUsed(freeBlockIndex);
+                iNode.writeToStorage();
+                buffer = new byte[params.blockSize];
+            }
+            modified = false;
+            bufferedBlockLinkIndex = currentBlockLinkIndex;
+        }
+
+        /**
+         * sequentially writes all bytes from <code>src</code> to this file
+         * starting from current position in the file
+         *
+         * @param src array of bytes to write to file
+         * @throws ReadWriteException if no free space left to expand the file
+         */
+        public void write(byte[] src) throws ReadWriteException{
+
+            // number of bytes to write
+            int count = src.length;
+
+            if(currentBlockLinkIndex != bufferedBlockLinkIndex) {
+                loadCurrentBlock();
+            }
+
+            // position in the current block
+            int offsetInBlock = position % params.blockSize;
+
+            // number of bytes to write to the current block
+            int bytesToWrite = Math.min(count, params.blockSize - offsetInBlock);
+
+            // current read position in source buffer
+            int offsetInSource = 0;
+
+            // write to the buffer
+            System.arraycopy(src,offsetInSource,buffer,offsetInBlock,bytesToWrite);
+            modified = true;
+
+            offsetInSource += bytesToWrite;
+            position += bytesToWrite;
+            currentBlockLinkIndex =  position / params.blockSize;
+            count -= bytesToWrite;
+
+            offsetInBlock = 0;
+            while (count != 0) {
+                assert count > 0;
+                loadCurrentBlock();
+                bytesToWrite = Math.min(count, params.blockSize);
+
+                // write to the buffer
+                System.arraycopy(src,offsetInSource,buffer,offsetInBlock,bytesToWrite);
+                modified = true;
+
+                offsetInSource += bytesToWrite;
+                position += bytesToWrite;
+                currentBlockLinkIndex =  position / params.blockSize;
+                count -= bytesToWrite;
+            }
+
+            // update file length
+            iNode.length = Math.max(iNode.length, position);
+            iNode.writeToStorage();
+
+        }
+
+        /**
+         * moves the current position of this file to <code>pos</code>,
+         * where pos is an integer specifying the number of bytes
+         * from the beginning of the file.
+         *
+         * @throws IndexOutOfBoundsException if pos is greater than
+         * the file length or less then zero.
+         */
+        public void lseek(int pos) {
+            if (pos > iNode.length || pos < 0)
+                throw new IndexOutOfBoundsException("Invalid pos! "
+                        + "The maximum allowed pos is immediately after "
+                        + "the end of file, the minimum pos is 0, "
+                        + "the specified pos is " + pos);
+            currentBlockLinkIndex = pos / params.blockSize;
+            position = pos;
+        }
     };
 
 
@@ -385,14 +546,20 @@ public class FileSystem {
      * @throws IllegalArgumentException if the file with specified index is not
      *         opened
      */
-    public byte[] read(int index, int count) throws ReadWriteException{
+    public byte[] read(int index, int count) throws ReadWriteException {
 
-        return null;
+        File file = OFT[index];
+
+        if(file == null) {
+            throw new IllegalArgumentException("No file opened with index " + index);
+        }
+
+        return file.read(count);
     }
 
 
     /**
-     * sequentially writes all bytes from <code>src</code> to the file
+     * Sequentially writes all bytes from <code>src</code> to the file
      * with specified index starting from current position in the file
      *
      * @param index index of the file in OFT
@@ -403,6 +570,18 @@ public class FileSystem {
      *         is not opened
      */
     public void write(int index, byte[] src) throws ReadWriteException{
+
+        File file = OFT[index];
+
+        if(file == null) {
+            throw new IllegalArgumentException("No file opened with index " + index);
+        }
+        if (file.position + src.length > params.maxFileSize) {
+            throw new ReadWriteException("Max file size will be reached " +
+                    "before writing " + src.length + " bytes");
+        }
+
+        file.write(src);
 
     }
 
@@ -430,8 +609,13 @@ public class FileSystem {
      * @throws IndexOutOfBoundsException if pos is greater than the file length
      */
     public void lseek(int index, int pos) {
-
+        File file = OFT[index];
+        if(file == null) {
+            throw new IllegalArgumentException("No file opened with index " + index);
+        }
+        file.lseek(pos);
     }
+
 
 
 }
