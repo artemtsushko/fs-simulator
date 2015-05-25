@@ -1097,7 +1097,7 @@ public class FileSystem {
     public void backupStorage(java.io.File file) throws IOException{
         for (int index = 0; index < OFT.length; ++index) {
             // write buffer to storage
-            if (OFT[index].modified) {
+            if (OFT[index] != null && OFT[index].modified) {
                 storage.writeBlock(OFT[index].buffer,
                         OFT[index].iNode.blockIndexes[OFT[index].bufferedBlockLinkIndex]);
                 OFT[index].modified = false;
