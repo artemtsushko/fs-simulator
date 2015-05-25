@@ -2,6 +2,8 @@ package com.tsushko.spos.fs;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -1078,6 +1080,25 @@ public class FileSystem {
 
         // free the OFT entry
         OFT[index] = null;
+    }
+
+    /**
+     * flushes buffers of open files and saves the current state
+     * of the storage to the specified file
+     *
+     * @param file the real file to which the storage backup will be written to
+     * @throws IOException if any usual I/O exception occurs during backup
+     */
+    public void backupStorage(java.io.File file) throws IOException{
+        for (int index = 0; index < OFT.length; ++index) {
+            // write buffer to storage
+            if (OFT[index].modified) {
+                storage.writeBlock(OFT[index].buffer,
+                        OFT[index].iNode.blockIndexes[OFT[index].bufferedBlockLinkIndex]);
+                OFT[index].modified = false;
+            }
+        }
+        ((InMemoryStorage) storage).saveToFile(file);
     }
 
 }
