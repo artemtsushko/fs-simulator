@@ -932,8 +932,6 @@ public class FileSystem {
 
         // release resources
 
-        // TODO: close file (?)
-
         // remove directory entry
         removeDirectoryEntry(dirEntryIndex);
 
@@ -974,6 +972,85 @@ public class FileSystem {
         }
 
         return result;
+    }
+
+    /**
+     * opens a file with specified symbolic name for reading/writing
+     * and returns the index of the opened file in OFT (open files table),
+     * which is used for subsequent read, write, lseek, and close operations
+     *
+     * @param name symbolic name of the file that will be opened
+     * @return  the index of the opened file, which is used for
+     *          subsequent read, write, lseek, and close operations
+     * @throws FileNotFoundException    if the file with specified name
+     *                                  doesn't exist in the directory
+     * @throws OpenFilesNumberException if the maximum number of open
+     *                                  files was exceeded
+     */
+    public int open(String name)
+            throws  FileNotFoundException,
+                    OpenFilesNumberException {
+
+        // find corresponding directory entry
+        int dirEntryIndex = findFileInDirectory(name);
+
+        // check if the file with specified name exists
+        if (dirEntryIndex == -1)
+            throw new FileNotFoundException();
+
+        DirectoryEntry directoryEntry = readDirectoryEntry(dirEntryIndex);
+
+        /* create an INode object representing the iNode
+           corresponding to the file
+        */
+        INode iNode = readINodeFromStorage(directoryEntry.iNodeIndex);
+
+        // find free slot in open files table (OFT);
+        int indexOFT = 0;
+        for (indexOFT = 1; indexOFT < OFT.length; ++indexOFT) {
+            if (OFT[indexOFT] == null)
+                break;
+        }
+        if (indexOFT == OFT.length) {
+            throw new OpenFilesNumberException();
+        }
+
+        // open the file
+        OFT[indexOFT] = new File(iNode);
+        return indexOFT;
+
+    }
+
+    /**
+     * closes the specified file and frees resources
+     *
+     * @param index index of the file in OFT,
+     *              that was returned by
+     *              {@link this#open(String)}
+     * @throws FileNotFoundException    if the file with specified index
+     *                                  is not opened
+     */
+    public void close(int index)
+            throws FileNotFoundException {
+
+        if (index < 1 || index >= OFT.length) {
+            throw new IndexOutOfBoundsException("Expected index in range [1,"
+                    + OFT.length + "), actual " + index);
+        }
+        if (OFT[index] == null) {
+            throw new FileNotFoundException("The file with specified index"
+                    + " is not opened");
+        }
+
+
+        // write buffer to storage
+        if (OFT[index].modified) {
+            storage.writeBlock(OFT[index].buffer,
+                    OFT[index].iNode.blockIndexes[OFT[index].bufferedBlockLinkIndex]);
+        }
+
+        // free the OFT entry
+        OFT[index] = null;
     }
 
 }
