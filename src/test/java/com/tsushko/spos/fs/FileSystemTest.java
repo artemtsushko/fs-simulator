@@ -6,12 +6,12 @@
 package com.tsushko.spos.fs;
 
 import java.io.File;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.junit.*;
+
 import static org.junit.Assert.*;
 
 /**
@@ -19,12 +19,22 @@ import static org.junit.Assert.*;
  * @author chernuhaiv@gmail.com
  */
 public class FileSystemTest {
-    
+    private static FileSystemParams fsp;
+    private static Storage storage;
+    private static FileSystem fs;
+    private static int opened;
     public FileSystemTest() {
+
     }
     
     @BeforeClass
-    public static void setUpClass() {
+    public static void setUpClass() throws FileNotFoundException,
+            OpenFilesNumberException, FileAlreadyExistsException,
+            ReadWriteException {
+        fsp = FileSystemParams.getInstance(64, 64, 24, 5);
+        fs = new FileSystem(fsp);
+        System.out.println("FS created");
+
     }
     
     @AfterClass
@@ -32,11 +42,21 @@ public class FileSystemTest {
     }
     
     @Before
-    public void setUp() {
+    public void setUp() throws FileNotFoundException,
+            OpenFilesNumberException, FileAlreadyExistsException,
+            ReadWriteException {
+        fs.create("testFile");
+        opened = fs.open("testFile");
+        byte[] arr = "xyxy".getBytes();
+        fs.write(0, arr);
+        fs.close(opened);
+        opened = fs.open("testFile");
     }
     
     @After
-    public void tearDown() {
+    public void tearDown() throws FileNotFoundException {
+        fs.close(opened);
+        fs.destroy("testFile");
     }
 
     /**
@@ -44,70 +64,89 @@ public class FileSystemTest {
      */
     @Test
     public void testRead() throws Exception {
-        System.out.println("read");
+        System.out.println("read on read write exception");
         int index = 0;
-        int count = 0;
-        FileSystem instance = null;
-        byte[] expResult = null;
-        byte[] result = instance.read(index, count);
+        int count = 4;
+        byte[] expResult = {'x','y','x','y'};
+        byte[] result = fs.read(index, count);
+        System.out.println("byes count " + result.length);
         assertArrayEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
     }
 
+    /**
+     * Test of read method, of class FileSystem.
+     */
+    @Test(expected = ReadWriteException.class)
+    public void testReadOnReadWriteException() throws Exception {
+        System.out.println("read");
+        int index = 0;
+        int count = 5;
+        byte[] expResult = {'x','y','x','y'};
+        byte[] result = fs.read(index, count);
+        assertArrayEquals(expResult, result);
+
+    }
     /**
      * Test of write method, of class FileSystem.
      */
     @Test
     public void testWrite() throws Exception {
         System.out.println("write");
-        int index = 0;
-        byte[] src = null;
-        FileSystem instance = null;
-        instance.write(index, src);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        byte[] src = {'x','y',
+                    'x','y',
+                    'x','y',
+                    'x','y'};
+        fs.write(opened, src);
     }
+    /**
+     * Test of write method, of class FileSystem.
+     * Test on illegal file index.
+     */
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testWriteOnWriteExceptionIllegalIndex() throws Exception {
+        System.out.println("write");
+        byte[] src = {'x','y',
+                'x','y',
+                'x','y',
+                'x','y'};
+
+        fs.write(100, src);
+    }
+
+    /**
+     * Test of write method, of class FileSystem.
+     * Test on exceeding file size.
+     */
+    @Test(expected = ReadWriteException.class)
+    public void testWriteOnWriteException() throws Exception {
+        System.out.println("write");
+        byte[] src = new byte[2048];
+        for (int i = 0; i < 2048;++i)
+            src[i] = 'x';
+        fs.write(opened, src);
+    }
+
+
 
     /**
      * Test of lseek method, of class FileSystem.
      */
     @Test
-    public void testLseek() {
+    public void testLseek() throws ReadWriteException {
         System.out.println("lseek");
-        int index = 0;
-        int pos = 0;
-        FileSystem instance = null;
-        instance.lseek(index, pos);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        int pos = 4;
+        fs.read(0, 4);
+    }
+    /**
+     * Test of lseek method, of class FileSystem.
+     */
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testLseekOutOfBound() {
+        System.out.println("lseek");
+        int pos = 30;
+        fs.lseek(opened, pos);
     }
 
-    /**
-     * Test of create method, of class FileSystem.
-     */
-    @Test
-    public void testCreate() throws Exception {
-        System.out.println("create");
-        String name = "";
-        FileSystem instance = null;
-        instance.create(name);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of destroy method, of class FileSystem.
-     */
-    @Test
-    public void testDestroy() throws Exception {
-        System.out.println("destroy");
-        String name = "";
-        FileSystem instance = null;
-        instance.destroy(name);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
 
     /**
      * Test of directory method, of class FileSystem.
@@ -115,53 +154,11 @@ public class FileSystemTest {
     @Test
     public void testDirectory() {
         System.out.println("directory");
-        FileSystem instance = null;
-        List<String> expResult = null;
-        List<String> result = instance.directory();
+        List<String> expResult = new ArrayList<>();
+        expResult.add("test\t0B");
+        List<String> result = fs.directory();
+        System.out.println(result);
         assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of open method, of class FileSystem.
-     */
-    @Test
-    public void testOpen() throws Exception {
-        System.out.println("open");
-        String name = "";
-        FileSystem instance = null;
-        int expResult = 0;
-        int result = instance.open(name);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of close method, of class FileSystem.
-     */
-    @Test
-    public void testClose() throws Exception {
-        System.out.println("close");
-        int index = 0;
-        FileSystem instance = null;
-        instance.close(index);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of backupStorage method, of class FileSystem.
-     */
-    @Test
-    public void testBackupStorage() throws Exception {
-        System.out.println("backupStorage");
-        File file = null;
-        FileSystem instance = null;
-        instance.backupStorage(file);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
     }
     
 }

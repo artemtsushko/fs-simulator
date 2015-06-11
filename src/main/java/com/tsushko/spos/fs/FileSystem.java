@@ -26,12 +26,12 @@ public class FileSystem {
     /**
      * a storage on which the file system is deployed
      */
-    private Storage storage;
+    private static Storage storage;
 
     /**
      * holds all the parameters of this file system
      */
-    private FileSystemParams params;
+    private static FileSystemParams params;
 
     /**
      * Open files table, which keeps track of open files
@@ -142,7 +142,7 @@ public class FileSystem {
      *
      * @param blockNumber index of the block
      */
-    private void markBlockAsUsed(int blockNumber) {
+    private static void markBlockAsUsed(int blockNumber) {
         int offsetBlocks = FileSystemParams.BITMAP_BLOCK_INDEX
                 + blockNumber / (params.blockSize * Byte.SIZE);
         int offsetBytes = (blockNumber % (params.blockSize * Byte.SIZE)) / Byte.SIZE;
@@ -160,7 +160,7 @@ public class FileSystem {
      *
      * @return the index of a free block or -1 if not found
      */
-    private int findFreeBlock() {
+    private static int findFreeBlock() {
         for (int bitmapBlockIndex = 0;
              bitmapBlockIndex < params.blocksForBitmap;
              ++bitmapBlockIndex) {
@@ -193,7 +193,7 @@ public class FileSystem {
      * Allows to manipulate iNode fields. In order to apply any
      * changes this object should be written back to storage.
      */
-    private class INode {
+     static class INode {
 
         /**
          * index of the iNode represented, a value in range
@@ -296,7 +296,7 @@ public class FileSystem {
      * @return An INode object representing the iNode
      *         with specified index on Storage
      */
-    private INode readINodeFromStorage(int index) {
+    static INode readINodeFromStorage(int index) {
         if (index >= params.iNodesNumber) {
             throw new IndexOutOfBoundsException("incorrect iNode index: "
                     + "expected in range [0," + params.iNodesNumber + "), "
@@ -350,7 +350,7 @@ public class FileSystem {
      *         or null if not found
      *
      */
-    private INode findFreeINode() {
+    INode findFreeINode() {
 
         for (int i = 0; i < params.iNodesNumber; ++i) {
             INode iNode = readINodeFromStorage(i);
@@ -364,7 +364,7 @@ public class FileSystem {
     /**
      * An entry in open files table (OFT), keeps track of an open file
      */
-    private class File{
+    static class File{
         /**
          * An INode object representing the iNode assigned to this file
          */

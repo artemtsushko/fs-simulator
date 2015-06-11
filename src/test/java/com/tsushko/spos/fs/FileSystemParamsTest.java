@@ -15,5 +15,4 @@ public class FileSystemParamsTest {
         assertEquals(fsp.filesBlockIndex,8);
     }
 
-    //TODO: write unit tests
 }
